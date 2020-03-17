@@ -2,7 +2,7 @@ import React, {useEffect, useReducer} from 'react'
 import { StyleSheet, Text, View, Button } from 'react-native';
 import Amplify, { Analytics, Storage, API, graphqlOperation } from 'aws-amplify';
 import PubSub from '@aws-amplify/pubsub';
-import { withAuthenticator, S3Album } from 'aws-amplify-react-native'
+import { SignIn, S3Album } from 'aws-amplify-react-native'
 
 
 import config from './aws-exports'
@@ -31,7 +31,43 @@ const addTodo = `mutation createTodo($name:String! $description: String!) {
   }
 }`;
 
+const signUpConfig = {
+  header: 'My Customized Sign Up',
+  hideAllDefaults: true,
+  defaultCountryCode: '1',
+  signUpFields: [
+    {
+      label: 'My user name',
+      key: 'username',
+      required: true,
+      displayOrder: 1,
+      type: 'string'
+    },
+    {
+      label: 'Password',
+      key: 'password',
+      required: true,
+      displayOrder: 2,
+      type: 'password'
+    },
+    
+    {
+      label: 'Email',
+      key: 'email',
+      required: true,
+      displayOrder: 3,
+      type: 'string'
+    }
+  ]
+};
+
+const usernameAttributes = 'My user name';
+
 class App extends React.Component {
+  constructor(props, context){
+  super(props, context);
+  }
+  
   uploadFile = (evt) => {
     const file = evt.target.files[0];
     const name = file.name;
@@ -62,6 +98,7 @@ class App extends React.Component {
   };
 
   render() {
+    if(this.props.authState == "signedIn"){
     return (
       <div className="App">
       <p> Pick a file</p>
@@ -71,9 +108,11 @@ class App extends React.Component {
       <S3Album level="private" path='' />
     </div>
     );
+  }else{
+    return null;
+}
   }
 }
-
 
 
 const styles = StyleSheet.create({
@@ -86,4 +125,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default withAuthenticator(App,true);
+export default (App);
