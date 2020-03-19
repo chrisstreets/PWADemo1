@@ -24,5 +24,17 @@
 			"dependsOn": [],
 			"customAuth": false
 		}
+	},
+	"analytics": {
+		"pwademo1": {
+			"service": "Pinpoint",
+			"providerPlugin": "awscloudformation"
+		}
+	},
+	"storage": {
+		"s3c4695d86": {
+			"service": "S3",
+			"providerPlugin": "awscloudformation"
+		}
 	}
 }
