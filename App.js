@@ -1,8 +1,8 @@
 import React, {useEffect, useReducer} from 'react'
-import { StyleSheet, Text, View, Button } from 'react-native';
+import { StyleSheet, Text, TextInput, View, Button } from 'react-native';
 import Amplify, { Analytics, Storage, API, graphqlOperation } from 'aws-amplify';
 import PubSub from '@aws-amplify/pubsub';
-import { SignIn, S3Album } from 'aws-amplify-react-native'
+import { withAuthenticator, S3Album } from 'aws-amplify-react-native'
 
 
 import config from './aws-exports'
@@ -31,76 +31,94 @@ const addTodo = `mutation createTodo($name:String! $description: String!) {
   }
 }`;
 
-const signUpConfig = {
-  header: 'My Customized Sign Up',
-  hideAllDefaults: true,
-  defaultCountryCode: '1',
-  signUpFields: [
-    {
-      label: 'My user name',
-      key: 'username',
-      required: true,
-      displayOrder: 1,
-      type: 'string'
-    },
-    {
-      label: 'Password',
-      key: 'password',
-      required: true,
-      displayOrder: 2,
-      type: 'password'
-    },
-    
-    {
-      label: 'Email',
-      key: 'email',
-      required: true,
-      displayOrder: 3,
-      type: 'string'
-    }
-  ]
-};
-
-const usernameAttributes = 'My user name';
-
 class App extends React.Component {
-  constructor(props, context){
-  super(props, context);
-  }
+  state = {
+		name: '',
+		description: '',
+		todos: []
+  };
   
-  uploadFile = (evt) => {
+ /* uploadFile = (evt) => {
     const file = evt.target.files[0];
     const name = file.name;
 
     Storage.put(name, file).then(() => {
       this.setState({ file: name });
     })
-  }
+  } */
 
-  componentDidMount() {
+  async componentDidMount() {
     Analytics.record('Amplify_CLI');
-  }
+    try {
+			const todos = await API.graphql(graphqlOperation(listTodos));
+			console.log('todos: ', todos);
+			this.setState({ todos: todo.data.listTodos.items });
+		} catch (err) {
+			console.log('error: ', err);
+		}
+	}
+  
+  onChangeText = (key, val) => {
+		this.setState({ [key]: val });
+	};
+
+  
 
   todoMutation = async () => {
-    const todoDetails = {
-      name: 'Party tonight!',
-      description: 'Amplify CLI rocks!'
+    if(this.state.name == '' || this.state.description == '')return;
+
+    const todoDetails = {name: this.state.name, description: this.state.description};
+      try{
+        const todos = [...this.state.todos, todo];
+        this.setState({todos, name: '', description: ''});
+        console.log('todos: ', todos);
+        await API.graphql(graphqlOperation(addTodo, todoDetails));
+        console.log('succes');
+      }catch (err){
+        console.log('error', err);
     };
   
-    const newTodo = await API.graphql(graphqlOperation(addTodo, todoDetails));
-    alert(JSON.stringify(newTodo));
+    
+    
   };
   
-  listQuery = async () => {
+  /* listQuery = async () => {
     console.log('listing todos');
     const allTodos = await API.graphql(graphqlOperation(listTodos));
     alert(JSON.stringify(allTodos));
-  };
+  }; */
 
+  
+  
+  
   render() {
-    if(this.props.authState == "signedIn"){
     return (
-      <div className="App">
+      <View style={styles.container}>
+      <TextInput
+        style={styles.input}
+        value={this.state.name}
+        onChangeText={val => this.onChangeText('name', val)}
+        placeholder="What do you want to read?"
+      />
+      <TextInput
+        style={styles.input}
+        value={this.state.description}
+        onChangeText={val => this.onChangeText('description', val)}
+        placeholder="Who wrote it?"
+      />
+      <Button onPress={this.addTodo} name="Add to TBR" color="#eeaa55" />
+      {this.state.todos.map((todo, index) => (
+        <View key={index} style={styles.todo}>
+          <Text style={styles.name}>{todo.name}</Text>
+          <Text style={styles.description}>{todo.description}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+}
+     
+      /* <div className="App">
       <p> Pick a file</p>
       <input type="file" onChange={this.uploadFile} />
       <button onClick={this.listQuery}>GraphQL Query</button>
@@ -108,21 +126,31 @@ class App extends React.Component {
       <S3Album level="private" path='' />
     </div>
     );
-  }else{
-    return null;
-}
   }
-}
+} */
+
 
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ddeefff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1
-  },
-});
+	container: {
+		flex: 1,
+		backgroundColor: '#fff',
+		paddingHorizontal: 10,
+		paddingTop: 50
+	},
+	input: {
+		height: 50,
+		borderBottomWidth: 2,
+		borderBottomColor: 'blue',
+		marginVertical: 10
+	},
+	todo: {
+		borderBottomWidth: 1,
+		borderBottomColor: '#ddd',
+		paddingVertical: 10
+	},
+	name: { fontSize: 16 },
+	description: { color: 'rgba(0, 0, 0, .5)' }
+});  
 
-export default (App);
+export default withAuthenticator(App, true);
